@@ -573,7 +573,7 @@ def sub_domain_collect(req_list: List[Request], root_domain: str) -> List[str]:
     sub_domain_list: List[str] = []
 
     for req in req_list:
-        domain = req.URL.hostname()
+        domain = req.URL.hostname
         if not domain or domain in unique_domains:
             continue
         unique_domains.add(domain)
