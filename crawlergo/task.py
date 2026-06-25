@@ -14,7 +14,7 @@ from typing import List, Optional, Dict, Any, Set
 from . import config
 from .browser import BrowserManager
 from .model import Request, URL, GetUrl, GetRequest
-from .utils import SimpleFilter, SmartFilter
+from .filter import SimpleFilter, SmartFilter
 
 
 class TaskConfig:
