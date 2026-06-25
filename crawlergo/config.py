@@ -40,9 +40,6 @@ EventTriggerInterval: timedelta = timedelta(milliseconds=100)
 # Before exit delay
 BeforeExitDelay: timedelta = timedelta(seconds=1)
 
-# Default event trigger mode
-DefaultEventTriggerMode: str = EventTriggerAsync
-
 # Maximum crawl count
 MaxCrawlCount: int = 200
 
@@ -65,6 +62,9 @@ StrictFilterMode: str = "strict"
 # Event trigger modes
 EventTriggerAsync: str = "async"
 EventTriggerSync: str = "sync"
+
+# Default event trigger mode
+DefaultEventTriggerMode: str = EventTriggerAsync
 
 # Request source types
 FromTarget: str = "Target"         # Initial target input
