@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crawlergo"
+version = "0.1.0"
+description = "A powerful Chrome headless browser crawler"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "playwright>=1.40.0",
+    "requests>=2.31.0",
+    "click>=8.1.0",
+    "tldextract>=5.1.0",
+]
+
+[project.scripts]
+crawlergo = "crawlergo.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["crawlergo*"]
