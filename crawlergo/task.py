@@ -550,7 +550,7 @@ def all_domain_collect(req_list: List[Request]) -> List[str]:
     domain_list: List[str] = []
 
     for req in req_list:
-        domain = req.URL.hostname()
+        domain = req.URL.hostname
         if domain and domain not in unique_domains:
             unique_domains.add(domain)
             domain_list.append(domain)
@@ -620,8 +620,8 @@ def get_paths_from_robots(nav_req: Request) -> List[Request]:
             if not match:
                 continue
             path = match.group(1)
-            url, err = GetUrl(path, nav_req.URL)
-            if err:
+            url = GetUrl(path, nav_req.URL)
+            if not url:
                 continue
             req = GetRequest(config.GET, url)
             req.Source = config.FromRobots
@@ -711,7 +711,7 @@ def _do_fuzz(nav_req: Request, path_list: List[str]) -> List[Request]:
         path = path.strip("/")
         path = path.strip("\n")
 
-        url = f"{nav_req.URL.scheme}://{nav_req.URL.hostname()}/{path}"
+        url = f"{nav_req.URL.scheme}://{nav_req.URL.hostname}/{path}"
 
         try:
             resp = http_get(
@@ -726,8 +726,8 @@ def _do_fuzz(nav_req: Request, path_list: List[str]) -> List[Request]:
             elif resp and resp.status_code == 301:
                 location = resp.headers.get("Location", "")
                 if location:
-                    redirect_url, _ = GetUrl(location)
-                    if redirect_url and redirect_url.hostname() == nav_req.URL.hostname():
+                    redirect_url = GetUrl(location)
+                    if redirect_url and redirect_url.hostname == nav_req.URL.hostname:
                         validated_urls.add(url)
         except Exception:
             pass
@@ -740,8 +740,8 @@ def _do_fuzz(nav_req: Request, path_list: List[str]) -> List[Request]:
 
     # Convert validated URLs to requests
     for _url in validated_urls:
-        url, err = GetUrl(_url)
-        if err:
+        url = GetUrl(_url)
+        if not url:
             continue
         req = GetRequest(config.GET, url)
         req.Source = config.FromFuzz

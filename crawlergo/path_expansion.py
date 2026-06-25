@@ -73,7 +73,7 @@ def _fuzz_worker(fuzz_task: FuzzTask) -> None:
         elif resp.status_code == 301:
             location = resp.headers.get("Location")
             if location:
-                redirect_url, _ = GetUrl(location)
+                redirect_url = GetUrl(location)
                 if redirect_url and redirect_url.hostname == fuzz_task.nav_req.URL.hostname:
                     with _validate_url_lock:
                         _validate_url.add(url)
@@ -110,8 +110,8 @@ def _do_fuzz(nav_req: Request, path_list: List[str]) -> List[Request]:
 
     result = []
     for _url in _validate_url:
-        url_obj, err = GetUrl(_url)
-        if err:
+        url_obj = GetUrl(_url)
+        if not url_obj:
             continue
         req = GetRequest(config.GET, url_obj)
         req.Source = config.FromFuzz
@@ -159,8 +159,8 @@ def get_paths_from_robots(nav_req: Request) -> List[Request]:
         if not match:
             continue
         path = match.group(1)
-        url_obj, err = GetUrl(path, nav_req.URL)
-        if err:
+        url_obj = GetUrl(path, nav_req.URL)
+        if not url_obj:
             continue
         req = GetRequest(config.GET, url_obj)
         req.Source = config.FromRobots
