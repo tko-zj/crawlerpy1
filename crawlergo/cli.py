@@ -7,7 +7,10 @@ A powerful web crawler based on Chrome headless mode
 import click
 import json
 import sys
-from . import CrawlerGo, Config
+from datetime import timedelta
+
+from .task import TaskConfig, CrawlerTask
+from .model import GetUrl, GetRequest
 
 
 @click.command()
@@ -199,7 +202,6 @@ def main(
     TARGET_URL: The target URL to crawl (required)
     """
 
-    # Parse custom headers
     headers = None
     if custom_headers:
         try:
@@ -208,7 +210,6 @@ def main(
             click.echo(f"Error: Invalid JSON in --custom-headers: {e}", err=True)
             sys.exit(1)
 
-    # Parse form values
     form_vals = None
     if form_values:
         try:
@@ -217,7 +218,6 @@ def main(
             click.echo(f"Error: Invalid JSON in --form-values: {e}", err=True)
             sys.exit(1)
 
-    # Parse form keyword values
     form_kw_vals = None
     if form_keyword_values:
         try:
@@ -226,63 +226,79 @@ def main(
             click.echo(f"Error: Invalid JSON in --form-keyword-values: {e}", err=True)
             sys.exit(1)
 
-    # Create configuration
-    config = Config(
+    config = TaskConfig(
         chromium_path=chromium_path,
-        chrome_ws_url=chrome_ws_url if chrome_ws_url else None,
-        custom_headers=headers,
-        post_data=post_data if post_data else None,
-        max_crawled_count=max_crawled_count,
+        chromium_ws_url=chrome_ws_url,
+        max_crawl_count=max_crawled_count,
         filter_mode=filter_mode.lower(),
-        output_mode=output_mode.lower(),
-        output_json_path=output_json if output_json else None,
-        max_tab_count=max_tab_count,
-        fuzz_path=fuzz_path,
-        fuzz_path_dict=fuzz_path_dict if fuzz_path_dict else None,
-        robots_path=robots_path,
-        request_proxy=request_proxy if request_proxy else None,
-        encode_url=encode_url,
-        tab_run_timeout=tab_run_timeout,
-        wait_dom_content_loaded_timeout=wait_dom_content_loaded_timeout,
+        max_tabs_count=max_tab_count,
+        path_by_fuzz=fuzz_path,
+        fuzz_dict_path=fuzz_path_dict,
+        path_from_robots=robots_path,
+        proxy=request_proxy,
+        encode_url_with_charset=encode_url,
+        tab_run_timeout=timedelta(seconds=tab_run_timeout),
+        dom_content_loaded_timeout=timedelta(seconds=wait_dom_content_loaded_timeout),
         event_trigger_mode=event_trigger_mode.lower(),
-        event_trigger_interval=event_trigger_interval / 1000.0,  # Convert ms to seconds
-        before_exit_delay=before_exit_delay,
-        ignore_url_keywords=list(ignore_url_keywords) if ignore_url_keywords else None,
-        form_values=form_vals,
-        form_keyword_values=form_kw_vals,
-        push_to_proxy=push_to_proxy if push_to_proxy else None,
-        push_pool_max=push_pool_max,
-        log_level=log_level.lower(),
-        headless=not no_headless,
+        event_trigger_interval=timedelta(milliseconds=event_trigger_interval),
+        before_exit_delay=timedelta(seconds=before_exit_delay),
+        ignore_keywords=list(ignore_url_keywords) if ignore_url_keywords else None,
+        custom_form_values=form_vals,
+        custom_form_keyword_values=form_kw_vals,
+        no_headless=no_headless,
         max_run_time=max_run_time,
     )
 
-    # Create crawler instance
-    crawler = CrawlerGo(config)
+    url_obj = GetUrl(target_url)
+    if not url_obj:
+        click.echo(f"Error: Invalid target URL: {target_url}", err=True)
+        sys.exit(1)
 
-    # Run crawler
+    targets = [GetRequest("GET", url_obj)]
+
+    if post_data:
+        targets.append(GetRequest("POST", url_obj, post_data=post_data))
+
+    if headers:
+        for t in targets:
+            t.Headers.update(headers)
+
+    task = CrawlerTask.new_crawler_task(targets, config)
+
     try:
-        result = crawler.run(target_url)
+        task.run()
 
-        # Handle output
+        result_urls = [req.URL.get_url() for req in task.Result.ReqList]
+
         if output_mode.lower() == 'console' or output_mode.lower() == 'none':
-            if result:
-                for url_info in result:
-                    click.echo(url_info.get('url', ''))
+            for url in result_urls:
+                click.echo(url)
         elif output_mode.lower() == 'json':
-            if result:
-                if output_json:
-                    with open(output_json, 'w', encoding='utf-8') as f:
-                        json.dump(result, f, ensure_ascii=False, indent=2)
-                    click.echo(f"Results written to {output_json}")
-                else:
-                    click.echo(json.dumps(result, ensure_ascii=False, indent=2))
+            output_data = [
+                {
+                    "url": req.URL.get_url(),
+                    "method": req.Method,
+                    "source": req.Source,
+                }
+                for req in task.Result.ReqList
+            ]
+            if output_json:
+                with open(output_json, 'w', encoding='utf-8') as f:
+                    json.dump(output_data, f, ensure_ascii=False, indent=2)
+                click.echo(f"Results written to {output_json}")
+            else:
+                click.echo(json.dumps(output_data, ensure_ascii=False, indent=2))
+
+        click.echo(f"\n[*] Total crawled: {len(task.Result.ReqList)}", err=True)
+        click.echo(f"[*] All requests: {len(task.Result.AllReqList)}", err=True)
+        if task.Result.AllDomainList:
+            click.echo(f"[*] All domains: {len(task.Result.AllDomainList)}", err=True)
+        if task.Result.SubDomainList:
+            click.echo(f"[*] Sub domains: {len(task.Result.SubDomainList)}", err=True)
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
-    finally:
-        crawler.close()
 
 
 if __name__ == '__main__':

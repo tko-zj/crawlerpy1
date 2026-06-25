@@ -43,9 +43,9 @@ from .config import (
     InputTextMap,
 )
 
-from .task import TaskConfig, Result, CrawlerTask, CrawlerGo
+from .task import TaskConfig, Result, CrawlerTask
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 __all__ = [
-    'TaskConfig', 'Result', 'CrawlerTask', 'CrawlerGo',
+    'TaskConfig', 'Result', 'CrawlerTask',
 ]
